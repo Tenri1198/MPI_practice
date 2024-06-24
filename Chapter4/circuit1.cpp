@@ -53,9 +53,11 @@ int main(int argc, char *argv[])
     int p;      //Number of processes
     double t_start = 0.;
     double t_end = 0.;
+    double elapsed_time = 0.;
     double max_time = 0.;
     int global_solutions=0;
     int local_solutions=0;
+    
     FILE *fp = NULL;
     MPI_Init (&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
@@ -69,13 +71,11 @@ int main(int argc, char *argv[])
         check_circuit(id, i, &local_solutions);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    t_end = MPI_Wtime();
-
-    double elapsed_time = t_end - t_start;
-    std::cout<<local_solutions<<std::endl;
-    MPI_Reduce(&elapsed_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     MPI_Reduce(&local_solutions, &global_solutions, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    t_end = MPI_Wtime();
+    elapsed_time = t_end - t_start;
+    MPI_Reduce(&elapsed_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     
     if(id==0)
     {
