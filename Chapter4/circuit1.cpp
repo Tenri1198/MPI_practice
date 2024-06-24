@@ -24,7 +24,7 @@
 /* Return 1 if 'i'th bit of 'n' is 1; 0 otherwise */
 #define EXTRACT_BIT(n,i) ((n&(1<<i))?1:0)
 
-void check_circuit (int id, int z) {
+void check_circuit (int id, int z, int* local_solutions) {
    int v[16];        /* Each element is a bit of z */
    int i;
 
@@ -42,6 +42,7 @@ void check_circuit (int id, int z) {
          v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
          v[10],v[11],v[12],v[13],v[14],v[15]);
       fflush (stdout);
+      *local_solutions = *local_solutions+1;
    }
 }
 
@@ -53,6 +54,8 @@ int main(int argc, char *argv[])
     double t_start = 0.;
     double t_end = 0.;
     double max_time = 0.;
+    int global_solutions=0;
+    int local_solutions=0;
     FILE *fp = NULL;
     MPI_Init (&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
@@ -63,19 +66,23 @@ int main(int argc, char *argv[])
 
     for(i=id; i<65536; i+=p)
     {
-        check_circuit(id, i);
+        check_circuit(id, i, &local_solutions);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
     t_end = MPI_Wtime();
 
     double elapsed_time = t_end - t_start;
+    std::cout<<local_solutions<<std::endl;
     MPI_Reduce(&elapsed_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_solutions, &global_solutions, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    
     if(id==0)
     {
-
         printf("Max Time: %lf\n", max_time);
         fflush(stdout);
+        printf("There are %d different solutions\n", global_solutions);
+        fflush(stdout);       
         fp = fopen("walltime.dat", "a"); // Open for appending
         if (fp != NULL) {
             fprintf(fp, "%d %lf\n", p, max_time); // Write number of processes and elapsed time
