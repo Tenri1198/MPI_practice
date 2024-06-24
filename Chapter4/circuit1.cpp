@@ -52,25 +52,37 @@ int main(int argc, char *argv[])
     int p;      //Number of processes
     double t_start = 0.;
     double t_end = 0.;
+    double max_time = 0.;
+    FILE *fp = NULL;
     MPI_Init (&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &p);
-    if(!id)
-    {
-        t_start = MPI_Wtick();
-    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    t_start = MPI_Wtime();
 
     for(i=id; i<65536; i+=p)
     {
         check_circuit(id, i);
     }
 
-    printf("Process %d is done\n", id);
-    fflush(stdout);
-    if(!id)
+    MPI_Barrier(MPI_COMM_WORLD);
+    t_end = MPI_Wtime();
+
+    double elapsed_time = t_end - t_start;
+    MPI_Reduce(&elapsed_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    if(id==0)
     {
-        t_end = MPI_Wtick();
-        printf("Time: %lf", t_end-t_start);
+
+        printf("Max Time: %lf\n", max_time);
+        fflush(stdout);
+        fp = fopen("walltime.dat", "a"); // Open for appending
+        if (fp != NULL) {
+            fprintf(fp, "%d %lf\n", p, max_time); // Write number of processes and elapsed time
+            fclose(fp);
+        } else {
+            fprintf(stderr, "Failed to open file for writing.\n");
+        }
     }
     MPI_Finalize();
     return 0;
