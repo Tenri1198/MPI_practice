@@ -7,7 +7,7 @@ MPICXX = mpicxx
 TARGET = sieve
 
 # Source file
-SRCS = sieve.cpp
+SRCS = Erathosthenes1.cpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
